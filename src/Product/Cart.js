@@ -23,32 +23,51 @@ const Cart = () => {
 
   const fetchCart = async () => {
     try {
-      const response = await axios.get(`${BackEndURL}/cart`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      const userId = localStorage.getItem("userId"); // fetch userId
+      const token = localStorage.getItem("token");
+  
+      if (!userId || !token) return;
+  
+      const response = await axios.get(`${BackEndURL}/cart/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+  
       setCart(response.data);
     } catch (error) {
       console.error("Error fetching cart:", error);
     }
   };
+  
 
   const updateQuantity = async (productId, change) => {
     try {
-      const response = await axios.put(`${BackEndURL}/cart/update`, {
-        productId,
-        change,
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      setCart(response.data);
+      const userId = localStorage.getItem("userId"); // ✅ correct key
+      const token = localStorage.getItem("token");
+  
+      if (!userId || !token) {
+        alert("User not authenticated.");
+        return;
+      }
+  
+      const response = await axios.put(
+        `${BackEndURL}/cart/update`,
+        { userId, productId, change },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+  
+      setCart(response.data); // update UI with new cart
     } catch (error) {
       console.error("Error updating quantity:", error);
     }
   };
+  
 
   const removeFromCart = async (productId) => {
+    const userId = localStorage.getItem("userId");
     try {
-      const response = await axios.delete(`${BackEndURL}/cart/remove/${productId}`, {
+      const response = await axios.delete(`${BackEndURL}/cart/remove/${userId}/${productId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       setCart(response.data);
@@ -56,13 +75,14 @@ const Cart = () => {
       console.error("Error removing item from cart:", error);
     }
   };
+  
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + item.productId.price * item.quantity, 0);
   };
 
   const goToCheckout = () => {
-    window.location.href = "/checkout";
+    navigate("/checkout", { state: { totalAmount: calculateTotal() } });
   };
 
   return (

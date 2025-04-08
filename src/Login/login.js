@@ -13,12 +13,12 @@ function Login() {
   const navigate = useNavigate();
 
   // 🔍 Check if user is already logged in
-  useEffect(() => {
+  /*useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       navigate("/home"); // Redirect to home if logged in
     }
-  }, [navigate]);
+  }, [navigate]);*/
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +29,7 @@ function Login() {
 
       // Store token in localStorage
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("userId", response.data.userId);
       alert(response.data.message);
 
       // Redirect to home after login

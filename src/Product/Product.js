@@ -34,9 +34,12 @@ const Product = () => {
   const updateCartCount = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${BackEndURL}/cart`, {
+      const userId = localStorage.getItem("userId");
+  
+      const response = await axios.get(`${BackEndURL}/cart/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+  
       const cartItems = response.data;
       const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       setCartCount(totalQuantity);
@@ -44,22 +47,30 @@ const Product = () => {
       console.error("Error fetching cart count:", error);
     }
   };
+  
 
   const addToCart = async (product) => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
+      const userId = localStorage.getItem("userId"); // 👈 Get userId from localStorage
+      if (!token || !userId) {
         alert("Please log in to add items to the cart.");
         navigate("/login");
         return;
       }
-
+  
       const response = await axios.post(
         `${BackEndURL}/cart`,
-        { productId: product._id, quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          userId, // 👈 Send userId in request
+          productId: product._id,
+          quantity: 1,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-
+  
       if (response.status === 200) {
         console.log("Item added to cart:", response.data);
         updateCartCount();
@@ -68,6 +79,7 @@ const Product = () => {
       console.error("Error adding to cart:", error);
     }
   };
+  
 
   return (
     <div>
