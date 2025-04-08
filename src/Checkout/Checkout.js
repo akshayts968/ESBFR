@@ -24,7 +24,7 @@ const Checkout = () => {
     e.preventDefault();
 
     try {
-      await axios.delete(`${BackEndURL}/cart/clear`);
+      //await axios.delete(`${BackEndURL}/cart/clear`);
 
       setPaymentSuccess(true);
 
