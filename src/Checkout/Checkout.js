@@ -2,19 +2,18 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import './Checkout.css';
 import axios from "axios";
-const BackEndURL = process.env.REACT_APP_BACKEND_URL;
-const Checkout = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-  });
 
+// Environment variables (make sure they are defined correctly)
+const BackEndURL = process.env.REACT_APP_BACKEND_URL;
+const KEY = process.env.REACT_APP_KEYPAYMENT;
+
+const Checkout = () => {
+  const [formData, setFormData] = useState({ name: "", address: "" });
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Retrieve amount passed from cart
-  const totalAmount = location.state?.totalAmount || 500; // Default to ₹500 if not passed
+  const totalAmount = location.state?.totalAmount || 500;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,16 +22,57 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!KEY || KEY === "undefined") {
+      alert("❌ Razorpay Public Key (REACT_APP_KEYPAYMENT) is missing.");
+      return;
+    }
+
     try {
-      //await axios.delete(`${BackEndURL}/cart/clear`);
+      const orderResponse = await axios.post(`${BackEndURL}/create-order`, {
+        amount: totalAmount * 100,
+      });
 
-      setPaymentSuccess(true);
+      const { id: order_id, currency } = orderResponse.data;
 
-      setTimeout(() => {
-        navigate("/cart");
-      }, 5000);
+      const options = {
+        key: KEY,
+        amount: totalAmount * 100,
+        currency: currency,
+        name: "My Shop",
+        description: "Product Purchase",
+        order_id: order_id,
+        handler: async function (response) {
+          try {
+            await axios.post(`${BackEndURL}/verify-payment`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            setPaymentSuccess(true);
+
+            setTimeout(() => {
+              navigate("/cart");
+            }, 5000);
+          } catch (err) {
+            console.error("Payment verification failed:", err);
+            alert("❌ Payment verification failed");
+          }
+        },
+        prefill: {
+          name: formData.name,
+          email: "customer@example.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
     } catch (err) {
-      console.error("Failed to clear cart:", err);
+      console.error("Payment initiation failed:", err);
       alert("❌ Failed to process order. Please try again.");
     }
   };
@@ -40,7 +80,9 @@ const Checkout = () => {
   return (
     <div className="container">
       <div className="header">
-        <button className="back-btn" onClick={() => window.history.back()}>&#8592;</button>
+        <button className="back-btn" onClick={() => window.history.back()}>
+          &#8592;
+        </button>
         <div className="title">Checkout</div>
         <div></div>
       </div>
@@ -75,7 +117,9 @@ const Checkout = () => {
             />
           </div>
 
-          <button type="submit" className="confirm-btn">Pay ₹{totalAmount}</button>
+          <button type="submit" className="confirm-btn">
+            Pay ₹{totalAmount}
+          </button>
         </form>
       )}
     </div>
